@@ -24,11 +24,11 @@ PYTHON LIBRARY REQUIERMENTS:
 
     If you want to use only tensorflow-cpu:
 
-        pip install -r requirements_cpu.txt
+        $ pip install -r requirements_cpu.txt
         
     If you want to use tensorflow-gpu:
     
-        pip install -r requirements_gpu.txt
+        $ pip install -r requirements_gpu.txt
     
 --------------------------------------------------------------------------------------------
 USAGE: 
@@ -47,7 +47,7 @@ NOTE:
 
     The option parameter '-h' shows help message.
     
-    $ python 1_nested_cv_baysian_search.py -h
+        $ python 1_nested_cv_baysian_search.py -h
     
     
 --------------------------------------------------------------------------------------------
