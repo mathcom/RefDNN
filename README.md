@@ -1,4 +1,4 @@
-#RefDNN: a reference drug based neural network for more accurate prediction of anticancer drug resistance
+# RefDNN: a reference drug based neural network for more accurate prediction of anticancer drug resistance
 
 We introduce a Reference Drug-based Neural Detwork model (RefDNN) for predicting anticancer drug resistance and identifying biomarkers contributing drug resistance.
 
@@ -12,7 +12,7 @@ For more detail, please refer to Choi, Jonghwan, et al. "RefDNN: a reference dru
 * Latest update: 8 April 2019
 
 --------------------------------------------------------------------------------------------
-##SYSTEM REQUIERMENTS: 
+## SYSTEM REQUIERMENTS: 
 
     - RefDNN requires system memory larger than 24GB.
     
@@ -20,7 +20,7 @@ For more detail, please refer to Choi, Jonghwan, et al. "RefDNN: a reference dru
 
 
 --------------------------------------------------------------------------------------------
-##PYTHON LIBRARY REQUIERMENTS:
+## PYTHON LIBRARY REQUIERMENTS:
 
     - If you want to use only tensorflow-cpu:
 
@@ -31,7 +31,7 @@ For more detail, please refer to Choi, Jonghwan, et al. "RefDNN: a reference dru
         $ pip install -r requirements_gpu.txt
     
 --------------------------------------------------------------------------------------------
-##USAGE: 
+## USAGE: 
 
     - If you want to use only tensorflow-cpu:
 
@@ -42,7 +42,7 @@ For more detail, please refer to Choi, Jonghwan, et al. "RefDNN: a reference dru
         $ python 1_nested_cv_baysian_search.py data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv -g
     
 --------------------------------------------------------------------------------------------
-##EXAMPLE:
+## EXAMPLE:
 
     - Note that the complete time of this example is about 8 hours.
     
@@ -104,7 +104,7 @@ For more detail, please refer to Choi, Jonghwan, et al. "RefDNN: a reference dru
     - The result file contains 3 metrics and 5 hyperparameter values computed by 5-fold cross validation.
 
 --------------------------------------------------------------------------------------------
-##NOTE:
+## NOTE:
 
     The option parameter '-h' shows help message.
     
