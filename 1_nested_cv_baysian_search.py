@@ -17,7 +17,7 @@ def get_args():
     parser.add_argument('fingerprintFile', type=str, help="A filepath of fingerprint data for TRAINING")
     parser.add_argument('-o', '--outputdir', type=str, default='output_1', help="A directory path for saving outputs (default:'output_1')")
     parser.add_argument('-g', '--gpuuse', action='store_true', help="If '-g' is given, RefDNN will use tensorflow-gpu")
-    parser.add_argument('-l', '--verbose', type=int, default=1, help="0: only logs from outer loop, 1:logs from outer and inner loops, 2:all logs for debug")
+    parser.add_argument('-l', '--verbose', type=int, default=1, help="0: only logs from outer loop, 1:logs from outer and inner loops, 2:all logs for debug (default:1)")
     return parser.parse_args()
     
 def main():
@@ -177,9 +177,9 @@ def main():
         AUCPR_outer_k = average_precision_score(Y_test, Prob_test)
         AUCPR_outer.append(AUCPR_outer_k)
         
-        print('[OUTER][{}/{}] BEST_TEST_ACCURACY : {:.3f}'.format(k, ACC_outer_k))
-        print('[OUTER][{}/{}] BEST_TEST_AUCROC : {:.3f}'.format(k, AUCROC_outer_k))
-        print('[OUTER][{}/{}] BEST_TEST_AUCPR : {:.3f}'.format(k, AUCPR_outer_k))
+        print('[OUTER][{}/{}] BEST_TEST_ACCURACY : {:.3f}'.format(k, kf.get_n_splits(), ACCURACY_outer_k))
+        print('[OUTER][{}/{}] BEST_TEST_AUCROC : {:.3f}'.format(k, kf.get_n_splits(), AUCROC_outer_k))
+        print('[OUTER][{}/{}] BEST_TEST_AUCPR : {:.3f}'.format(k, kf.get_n_splits(), AUCPR_outer_k))
     
     #######################################################
     ## 4. Save the results
