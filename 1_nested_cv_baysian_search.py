@@ -99,7 +99,7 @@ def main():
         fitness_idx_test = idx_test
         
         ## 3-3) Bayesian optimization with gaussian process
-        print('[OUTER][{}/{}] NOW TUNING THE MODEL USING BAYESIAN OPTIMIZATION...'.format(k, kf.get_n_splits()))
+        print('[OUTER][{}/{}] NOW TUNING THE MODEL USING BAYESIAN OPTIMIZATION...'.format(k+1, kf.get_n_splits()))
         search_result = skopt.gp_minimize(func=fitness,
                                           dimensions=dimensions_hyperparameters,
                                           n_calls=fitness_num,
@@ -120,12 +120,12 @@ def main():
         L1_strength_outer.append(BEST_L1_REGULARIZATION_STRENGTH)
         L2_strength_outer.append(BEST_L2_REGULARIZATION_STRENGTH)
         
-        print('[OUTER][{}/{}] BEST_HIDDEN_UNITS : {}'.format(k, kf.get_n_splits(), BEST_HIDDEN_UNITS))
-        print('[OUTER][{}/{}] BEST_LEARNING_RATE_FTRL : {:.3e}'.format(k, kf.get_n_splits(), BEST_LEARNING_RATE_FTRL))
-        print('[OUTER][{}/{}] BEST_LEARNING_RATE_ADAM : {:.3e}'.format(k, kf.get_n_splits(), BEST_LEARNING_RATE_ADAM))
-        print('[OUTER][{}/{}] BEST_L1_REGULARIZATION_STRENGTH : {:.3e}'.format(k, kf.get_n_splits(), BEST_L1_REGULARIZATION_STRENGTH))
-        print('[OUTER][{}/{}] BEST_L2_REGULARIZATION_STRENGTH : {:.3e}'.format(k, kf.get_n_splits(), BEST_L2_REGULARIZATION_STRENGTH))
-        print('[OUTER][{}/{}] BEST_TRAINING_ACCURACY : {:.3f}'.format(k, kf.get_n_splits(), BEST_TRAINING_ACCURACY))
+        print('[OUTER][{}/{}] BEST_HIDDEN_UNITS : {}'.format(k+1, kf.get_n_splits(), BEST_HIDDEN_UNITS))
+        print('[OUTER][{}/{}] BEST_LEARNING_RATE_FTRL : {:.3e}'.format(k+1, kf.get_n_splits(), BEST_LEARNING_RATE_FTRL))
+        print('[OUTER][{}/{}] BEST_LEARNING_RATE_ADAM : {:.3e}'.format(k+1, kf.get_n_splits(), BEST_LEARNING_RATE_ADAM))
+        print('[OUTER][{}/{}] BEST_L1_REGULARIZATION_STRENGTH : {:.3e}'.format(k+1, kf.get_n_splits(), BEST_L1_REGULARIZATION_STRENGTH))
+        print('[OUTER][{}/{}] BEST_L2_REGULARIZATION_STRENGTH : {:.3e}'.format(k+1, kf.get_n_splits(), BEST_L2_REGULARIZATION_STRENGTH))
+        print('[OUTER][{}/{}] BEST_TRAINING_ACCURACY : {:.3f}'.format(k+1, kf.get_n_splits(), BEST_TRAINING_ACCURACY))
     
         ## 3-4) Dataset
         idx_train_train, idx_train_valid = train_test_split(idx_train, test_size=0.2, stratify=dataset.get_drugs()[idx_train])
@@ -159,7 +159,7 @@ def main():
                      checkpoint_path=checkpoint_path)
                     
         ## 3-6) Fit a model
-        print('[OUTER][{}/{}] NOW TRAINING THE MODEL WITH BEST PARAMETERS...'.format(k, kf.get_n_splits()))
+        print('[OUTER][{}/{}] NOW TRAINING THE MODEL WITH BEST PARAMETERS...'.format(k+1, kf.get_n_splits()))
         history = clf.fit(X_train, S_train, I_train, Y_train,
                           X_valid, S_valid, I_valid, Y_valid,
                           verbose=verbose)
@@ -177,14 +177,14 @@ def main():
         AUCPR_outer_k = average_precision_score(Y_test, Prob_test)
         AUCPR_outer.append(AUCPR_outer_k)
         
-        print('[OUTER][{}/{}] BEST_TEST_ACCURACY : {:.3f}'.format(k, kf.get_n_splits(), ACCURACY_outer_k))
-        print('[OUTER][{}/{}] BEST_TEST_AUCROC : {:.3f}'.format(k, kf.get_n_splits(), AUCROC_outer_k))
-        print('[OUTER][{}/{}] BEST_TEST_AUCPR : {:.3f}'.format(k, kf.get_n_splits(), AUCPR_outer_k))
+        print('[OUTER][{}/{}] BEST_TEST_ACCURACY : {:.3f}'.format(k+1, kf.get_n_splits(), ACCURACY_outer_k))
+        print('[OUTER][{}/{}] BEST_TEST_AUCROC : {:.3f}'.format(k+1, kf.get_n_splits(), AUCROC_outer_k))
+        print('[OUTER][{}/{}] BEST_TEST_AUCPR : {:.3f}'.format(k+1, kf.get_n_splits(), AUCPR_outer_k))
     
     #######################################################
     ## 4. Save the results
     ########################################################
-    res = pd.DataFrame.from_dict({'ACCURACY':ACC_outer,
+    res = pd.DataFrame.from_dict({'ACCURACY':ACCURACY_outer,
                                   'AUCROC':AUCROC_outer,
                                   'AUCPR':Micro_fscore_outer,
                                   'Hidden_units':Hidden_units_outer,
@@ -192,7 +192,7 @@ def main():
                                   'Learning_rate_adam':Learning_rate_outer,
                                   'L1_regularization_strength':L1_strength_outer,
                                   'L2_regularization_strength':L2_strength_outer})
-    res = res[['ACC', 'AUCROC', 'AUCPR', 'Hidden_units', 'Learning_rate_ftrl', 'Learning_rate_adam', 'L1_regularization_strength', 'L2_regularization_strength']]
+    res = res[['ACCURACY', 'AUCROC', 'AUCPR', 'Hidden_units', 'Learning_rate_ftrl', 'Learning_rate_adam', 'L1_regularization_strength', 'L2_regularization_strength']]
     res.to_csv(os.path.join(outputdir, 'metrics_hyperparameters.csv'), sep=',')
     print('FINISH')
     
