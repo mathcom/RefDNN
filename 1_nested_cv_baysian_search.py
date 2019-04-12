@@ -2,9 +2,9 @@ import argparse
 import os
 import math
 import numpy as np
-import time
 import pandas as pd
-import skopt # pip install scikit-optimize
+import skopt
+from datetime import datetime
 from scipy.spatial.distance import pdist, squareform
 from sklearn.metrics import accuracy_score, average_precision_score, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, train_test_split
@@ -12,12 +12,18 @@ from refdnn import REFDNN
 
 def get_args():
     parser = argparse.ArgumentParser()
+    ## positional
     parser.add_argument('responseFile', type=str, help="A filepath of drug response data for TRAINING")
     parser.add_argument('expressionFile', type=str, help="A filepath of gene expression data for TRAINING")
     parser.add_argument('fingerprintFile', type=str, help="A filepath of fingerprint data for TRAINING")
-    parser.add_argument('-o', '--outputdir', type=str, default='output_1', help="A directory path for saving outputs (default:'output_1')")
-    parser.add_argument('-g', '--gpuuse', action='store_true', help="If '-g' is given, RefDNN will use tensorflow-gpu")
-    parser.add_argument('-l', '--verbose', type=int, default=1, help="0: only logs from outer loop, 1:logs from outer and inner loops, 2:all logs for debug (default:1)")
+    ## optional
+    parser.add_argument('-o', metavar='outputdir', type=str, default='output_1', help="A directory path for saving outputs (default:'output_1')")
+    parser.add_argument('-b', metavar='batchsize', type=int, default=64, help="A size of batch on training process. The small size is recommended if an available size of RAM is small (default: 64)")
+    parser.add_argument('-t', metavar='numtrainingsteps', type=int, default=5000, help="Number of training steps on training process. It is recommended that the steps is larger than (numpairs / batchsize) (default: 5000)")
+    parser.add_argument('-s', metavar='numbayesiansearch', type=int, default=20, help="Number of bayesian search for hyperparameter tuning (default: 20)")
+    parser.add_argument('-k', metavar='outerkfold', type=int, default=5, help="K for outer k-fold cross validation (default: 5)")
+    parser.add_argument('-l', metavar='innerkfold', type=int, default=3, help="L for inner l-fold cross validation (default: 3)")
+    parser.add_argument('-v', metavar='verbose', type=int, default=1, help="0:No logging, 1:Basic logging to check process, 2:Full logging for debugging (default:1)")
     return parser.parse_args()
     
 def main():
@@ -25,16 +31,29 @@ def main():
     
     global outputdir
     global checkpointdir
-    global gpuuse
     global verbose
     
-    outputdir = args.outputdir
-    checkpointdir = os.path.join(outputdir, "checkpoint")
-    gpuuse = args.gpuuse
-    verbose = args.verbose
+    outputdir = args.o
+    verbose = args.v
     
+    if verbose > 0:
+        print('[START]')
+    
+    if verbose > 1:
+        print('[ARGUMENT] RESPONSEFILE: {}'.format(args.responseFile))
+        print('[ARGUMENT] EXPRESSIONFILE: {}'.format(args.expressionFile))
+        print('[ARGUMENT] FINGERPRINTFILE: {}'.format(args.fingerprintFile))
+        print('[ARGUMENT] GPUUSE: {}'.format(args.gpuuse))
+        print('[ARGUMENT] OUTPUTDIR: {}'.format(args.o))
+        print('[ARGUMENT] NUMBAYESIANSEARCH: {}'.format(args.s))
+        print('[ARGUMENT] OUTERKFOLD: {}'.format(args.k))
+        print('[ARGUMENT] INNERKFOLD: {}'.format(args.l))
+        print('[ARGUMENT] VERBOSE: {}'.format(args.v))
+    
+    ## output directory
     if not os.path.exists(outputdir):
         os.mkdir(outputdir)
+    checkpointdir = os.path.join(outputdir, "checkpoint")
     if not os.path.exists(checkpointdir):
         os.mkdir(checkpointdir)
     
@@ -48,12 +67,18 @@ def main():
     fingerprintFile = args.fingerprintFile
     
     dataset = DATASET(responseFile, expressionFile, fingerprintFile)
-    print('[DATA INFO] num_pairs: {}'.format(len(dataset)))
-    print('[DATA INFO] num_drugs: {}'.format(len(dataset.get_drugs(unique=True))))
-    print('[DATA INFO] num_cells: {}'.format(len(dataset.get_cells(unique=True))))
-    print('[DATA INFO] num_genes: {}'.format(len(dataset.get_genes())))
-    print('[DATA INFO] num_sensitivity: {}'.format(np.count_nonzero(dataset.get_labels()==0)))
-    print('[DATA INFO] num_resistance: {}'.format(np.count_nonzero(dataset.get_labels()==1)))
+    if verbose > 0:
+        print('[DATA] NUM_PAIRS: {}'.format(len(dataset)))
+        print('[DATA] NUM_DRUGS: {}'.format(len(dataset.get_drugs(unique=True))))
+        print('[DATA] NUM_CELLS: {}'.format(len(dataset.get_cells(unique=True))))
+        print('[DATA] NUM_GENES: {}'.format(len(dataset.get_genes())))
+        print('[DATA] NUM_SENSITIVITY: {}'.format(np.count_nonzero(dataset.get_labels()==0)))
+        print('[DATA] NUM_RESISTANCE: {}'.format(np.count_nonzero(dataset.get_labels()==1)))
+    
+    ## time log
+    timeformat = '[TIME] [{0}] {1.year}-{1.month}-{1.day} {1.hour}:{1.minute}:{1.second}'
+    if verbose > 0:
+        print(timeformat.format(1, datetime.now()))
     
     ########################################################
     ## 2. Define the space of hyperparameters
@@ -71,15 +96,25 @@ def main():
                                   space_l1_regularization_strength,
                                   space_l2_regularization_strength]
     
+    ## time log
+    if verbose > 0:
+        print(timeformat.format(2, datetime.now()))
+    
     #######################################################
     ## 3. Start the hyperparameter tuning jobs
     ########################################################
     global fitness_step
     global fitness_idx_train
     global fitness_idx_test
-    global fitness_num
+    global innerkfold
+    global batchsize
+    global numtrainingsteps
     
-    fitness_num = 20
+    outerkfold = args.k
+    innerkfold = args.l
+    numbayesiansearch = args.s
+    batchsize = args.b
+    numtrainingsteps = args.t
     
     ## 3-1) init lists for metrics
     ACCURACY_outer = []
@@ -92,18 +127,20 @@ def main():
     L1_strength_outer = []
     L2_strength_outer = []
     
-    kf = StratifiedKFold(n_splits=5, shuffle=True)
+    kf = StratifiedKFold(n_splits=outerkfold, shuffle=True)
     for k, (idx_train, idx_test) in enumerate(kf.split(X=np.zeros(len(dataset)), y=dataset.get_drugs())):        
         fitness_step = 1
         fitness_idx_train = idx_train
         fitness_idx_test = idx_test
         
         ## 3-3) Bayesian optimization with gaussian process
-        print('[OUTER][{}/{}] NOW TUNING THE MODEL USING BAYESIAN OPTIMIZATION...'.format(k+1, kf.get_n_splits()))
+        if verbose > 0:
+            print('[OUTER] [{}/{}] NOW TUNING THE MODEL USING BAYESIAN OPTIMIZATION...'.format(k+1, kf.get_n_splits()))
+            
         search_result = skopt.gp_minimize(func=fitness,
                                           dimensions=dimensions_hyperparameters,
-                                          n_calls=fitness_num,
-                                          n_random_starts=5,
+                                          n_calls=numbayesiansearch,
+                                          n_random_starts=1,
                                           acq_func='EI',
                                           noise=1e-10,
                                           verbose=0)
@@ -120,13 +157,14 @@ def main():
         L1_strength_outer.append(BEST_L1_REGULARIZATION_STRENGTH)
         L2_strength_outer.append(BEST_L2_REGULARIZATION_STRENGTH)
         
-        print('[OUTER][{}/{}] BEST_HIDDEN_UNITS : {}'.format(k+1, kf.get_n_splits(), BEST_HIDDEN_UNITS))
-        print('[OUTER][{}/{}] BEST_LEARNING_RATE_FTRL : {:.3e}'.format(k+1, kf.get_n_splits(), BEST_LEARNING_RATE_FTRL))
-        print('[OUTER][{}/{}] BEST_LEARNING_RATE_ADAM : {:.3e}'.format(k+1, kf.get_n_splits(), BEST_LEARNING_RATE_ADAM))
-        print('[OUTER][{}/{}] BEST_L1_REGULARIZATION_STRENGTH : {:.3e}'.format(k+1, kf.get_n_splits(), BEST_L1_REGULARIZATION_STRENGTH))
-        print('[OUTER][{}/{}] BEST_L2_REGULARIZATION_STRENGTH : {:.3e}'.format(k+1, kf.get_n_splits(), BEST_L2_REGULARIZATION_STRENGTH))
-        print('[OUTER][{}/{}] BEST_TRAINING_ACCURACY : {:.3f}'.format(k+1, kf.get_n_splits(), BEST_TRAINING_ACCURACY))
-    
+        if verbose > 0:
+            print('[OUTER] [{}/{}] BEST_HIDDEN_UNITS : {}'.format(k+1, kf.get_n_splits(), BEST_HIDDEN_UNITS))
+            print('[OUTER] [{}/{}] BEST_LEARNING_RATE_FTRL : {:.3e}'.format(k+1, kf.get_n_splits(), BEST_LEARNING_RATE_FTRL))
+            print('[OUTER] [{}/{}] BEST_LEARNING_RATE_ADAM : {:.3e}'.format(k+1, kf.get_n_splits(), BEST_LEARNING_RATE_ADAM))
+            print('[OUTER] [{}/{}] BEST_L1_REGULARIZATION_STRENGTH : {:.3e}'.format(k+1, kf.get_n_splits(), BEST_L1_REGULARIZATION_STRENGTH))
+            print('[OUTER] [{}/{}] BEST_L2_REGULARIZATION_STRENGTH : {:.3e}'.format(k+1, kf.get_n_splits(), BEST_L2_REGULARIZATION_STRENGTH))
+            print('[OUTER] [{}/{}] BEST_TRAINING_ACCURACY : {:.3f}'.format(k+1, kf.get_n_splits(), BEST_TRAINING_ACCURACY))
+        
         ## 3-4) Dataset
         idx_train_train, idx_train_valid = train_test_split(idx_train, test_size=0.2, stratify=dataset.get_drugs()[idx_train])
         base_drugs = np.unique(dataset.get_drugs()[idx_train_train])
@@ -146,6 +184,9 @@ def main():
         Y_test = dataset.make_ydata(idx_test)
         
         ## 3-5) Create a model using the best parameters
+        if verbose > 0:
+            print('[OUTER] [{}/{}] NOW TRAINING THE MODEL WITH BEST PARAMETERS...'.format(k+1, kf.get_n_splits()))
+            
         checkpoint_path = "RefDNN_cv_outer.ckpt"
         checkpoint_path = os.path.join(checkpointdir, checkpoint_path)
         clf = REFDNN(hidden_units=BEST_HIDDEN_UNITS,
@@ -153,13 +194,11 @@ def main():
                      learning_rate_adam=BEST_LEARNING_RATE_ADAM,
                      l1_regularization_strength=BEST_L1_REGULARIZATION_STRENGTH,
                      l2_regularization_strength=BEST_L2_REGULARIZATION_STRENGTH,
-                     batch_size=64,
-                     training_steps=5000,
-                     gpu_use=gpuuse,
+                     batch_size=batchsize,
+                     training_steps=numtrainingsteps,
                      checkpoint_path=checkpoint_path)
                     
         ## 3-6) Fit a model
-        print('[OUTER][{}/{}] NOW TRAINING THE MODEL WITH BEST PARAMETERS...'.format(k+1, kf.get_n_splits()))
         history = clf.fit(X_train, S_train, I_train, Y_train,
                           X_valid, S_valid, I_valid, Y_valid,
                           verbose=verbose)
@@ -177,36 +216,48 @@ def main():
         AUCPR_outer_k = average_precision_score(Y_test, Prob_test)
         AUCPR_outer.append(AUCPR_outer_k)
         
-        print('[OUTER][{}/{}] BEST_TEST_ACCURACY : {:.3f}'.format(k+1, kf.get_n_splits(), ACCURACY_outer_k))
-        print('[OUTER][{}/{}] BEST_TEST_AUCROC : {:.3f}'.format(k+1, kf.get_n_splits(), AUCROC_outer_k))
-        print('[OUTER][{}/{}] BEST_TEST_AUCPR : {:.3f}'.format(k+1, kf.get_n_splits(), AUCPR_outer_k))
+        if verbose > 0:
+            print('[OUTER] [{}/{}] BEST_TEST_ACCURACY : {:.3f}'.format(k+1, kf.get_n_splits(), ACCURACY_outer_k))
+            print('[OUTER] [{}/{}] BEST_TEST_AUCROC : {:.3f}'.format(k+1, kf.get_n_splits(), AUCROC_outer_k))
+            print('[OUTER] [{}/{}] BEST_TEST_AUCPR : {:.3f}'.format(k+1, kf.get_n_splits(), AUCPR_outer_k))
+            
+        ## time log   
+        if verbose > 0:
+            print(timeformat.format(3, datetime.now()))
     
     #######################################################
     ## 4. Save the results
     ########################################################
     res = pd.DataFrame.from_dict({'ACCURACY':ACCURACY_outer,
                                   'AUCROC':AUCROC_outer,
-                                  'AUCPR':Micro_fscore_outer,
+                                  'AUCPR':AUCPR_outer,
                                   'Hidden_units':Hidden_units_outer,
-                                  'Learning_rate_ftrl':Learning_rate_outer,
-                                  'Learning_rate_adam':Learning_rate_outer,
+                                  'Learning_rate_ftrl':Learning_rate_ftrl_outer,
+                                  'Learning_rate_adam':Learning_rate_adam_outer,
                                   'L1_regularization_strength':L1_strength_outer,
                                   'L2_regularization_strength':L2_strength_outer})
     res = res[['ACCURACY', 'AUCROC', 'AUCPR', 'Hidden_units', 'Learning_rate_ftrl', 'Learning_rate_adam', 'L1_regularization_strength', 'L2_regularization_strength']]
     res.to_csv(os.path.join(outputdir, 'metrics_hyperparameters.csv'), sep=',')
-    print('FINISH')
+    
+    ## time log    
+    if verbose > 0:
+        print(timeformat.format(4, datetime.now()))
+    
+    if verbose > 0:
+        print('[FINISH]')
     
 
 def fitness(hyperparameters):
     global outputdir
     global checkpointdir
-    global gpuuse
     global verbose
     global dataset
     global fitness_step
     global fitness_idx_train
     global fitness_idx_test
-    global fitness_num
+    global innerkfold
+    global batchsize
+    global numtrainingsteps
     
     ## 1. Hyperparameters
     HIDDEN_UNITS = hyperparameters[0]
@@ -216,10 +267,11 @@ def fitness(hyperparameters):
     L2_REGULARIZATION_STRENGTH = hyperparameters[4]
     
     ## 2. 2-fold Cross Validation
-    if verbose > 0:
-        print('[INNER] NOW EVALUATING PARAMETERS IN THE INNER LOOP...')
+    if verbose > 1:
+        print('[INNER] [{}/{}] NOW EVALUATING PARAMETERS IN THE INNER LOOP...'.format(fitness_step, innerkfold))
+        
     objective_metrics = 0.
-    kf = StratifiedKFold(n_splits=3, shuffle=True)
+    kf = StratifiedKFold(n_splits=innerkfold, shuffle=True)
     for k, (idx_construction, idx_validation) in enumerate(kf.split(X=np.zeros_like(fitness_idx_train), y=dataset.get_drugs()[fitness_idx_train])):
         ## 2-1) dataset
         idx_construction = fitness_idx_train[idx_construction]
@@ -244,9 +296,8 @@ def fitness(hyperparameters):
                      learning_rate_adam=LEARNING_RATE_ADAM,
                      l1_regularization_strength=L1_REGULARIZATION_STRENGTH,
                      l2_regularization_strength=L2_REGULARIZATION_STRENGTH,
-                     batch_size=64,
-                     training_steps=5000,
-                     gpu_use=gpuuse,
+                     batch_size=batchsize,
+                     training_steps=numtrainingsteps,
                      checkpoint_path=checkpoint_path)
                     
         ## 2-3) Fit a model
@@ -259,13 +310,14 @@ def fitness(hyperparameters):
         objective_metrics += accuracy_score(Y_validation, Pred_validation)
     
     training_accuracy = objective_metrics / kf.get_n_splits()
-    if verbose > 0:
-        print('[INNER][{:02d}/{}] hidden_units: {}'.format(fitness_step, fitness_num, HIDDEN_UNITS))
-        print('[INNER][{:02d}/{}] learning_rate_ftrl: {:.3e}'.format(fitness_step, fitness_num, LEARNING_RATE_FTRL))
-        print('[INNER][{:02d}/{}] learning_rate_adam: {:.3e}'.format(fitness_step, fitness_num, LEARNING_RATE_ADAM))
-        print('[INNER][{:02d}/{}] l1_regularization_strength: {:.3e}'.format(fitness_step, fitness_num, L1_REGULARIZATION_STRENGTH))
-        print('[INNER][{:02d}/{}] l2_regularization_strength: {:.3e}'.format(fitness_step, fitness_num, L2_REGULARIZATION_STRENGTH))
-        print('[INNER][{:02d}/{}] training_accuracy: {:.3f}'.format(fitness_step, fitness_num, training_accuracy))
+    
+    if verbose > 1:
+        print('[INNER] [{}/{}] HIDDEN_UNITS: {}'.format(fitness_step, innerkfold, HIDDEN_UNITS))
+        print('[INNER] [{}/{}] LEARNING_RATE_FTRL: {:.3e}'.format(fitness_step, innerkfold, LEARNING_RATE_FTRL))
+        print('[INNER] [{}/{}] LEARNING_RATE_ADAM: {:.3e}'.format(fitness_step, innerkfold, LEARNING_RATE_ADAM))
+        print('[INNER] [{}/{}] L1_REGULARIZATION_STRENGTH: {:.3e}'.format(fitness_step, innerkfold, L1_REGULARIZATION_STRENGTH))
+        print('[INNER] [{}/{}] L2_REGULARIZATION_STRENGTH: {:.3e}'.format(fitness_step, innerkfold, L2_REGULARIZATION_STRENGTH))
+        print('[INNER] [{}/{}] TRAINING_ACCURACY: {:.3f}'.format(fitness_step, innerkfold, training_accuracy))
     
     fitness_step += 1
     return -training_accuracy

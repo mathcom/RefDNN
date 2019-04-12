@@ -7,14 +7,6 @@ import tensorflow as tf
 os.environ['TF_CPP_MIN_VLOG_LEVEL'] = '1'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
-def logging_time(original_function):
-    def wrapper_function(*args, **kwargs):
-        start_time = time.time()
-        result = original_function(*args, **kwargs)
-        print('-------- {}: {:.3f} sec -------'.format(original_function.__name__, (time.time()-start_time)))
-        return result
-    return wrapper_function
-    
 class REFDNN:
     def __init__(self,
                  hidden_units,
@@ -26,7 +18,6 @@ class REFDNN:
                  training_steps=10000,
                  evaluation_steps=100,
                  earlystop_use=True, patience=20,
-                 gpu_use=False,
                  checkpoint_path=None):
         ## hyperparameters
         self.hidden_units = hidden_units
@@ -41,7 +32,6 @@ class REFDNN:
         self.earlystop_use = earlystop_use
         self.patience = patience
         ## environment
-        self.gpu_use = gpu_use
         if checkpoint_path is None:
             checkpoint_path = "ckpt_RefDNN.ckpt"
         self.checkpoint_path = checkpoint_path
@@ -172,7 +162,7 @@ class REFDNN:
                 
                 if verbose > 1:
                     end_time = time.time()
-                    log = "[RefDNN][{:05d}] LOSS_train={:.5f} | LOSS_valid={:.5f}".format(step, loss_train, loss_valid)
+                    log = "[RefDNN] [{:05d}] LOSS_train={:.5f} | LOSS_valid={:.5f}".format(step, loss_train, loss_valid)
                     log += " | ACC_valid={:.3f}".format(acc_valid)
                     log += " | PRECISION_valid={:.3f}".format(precision_valid)
                     log += " | RECALL_valid={:.3f}".format(recall_valid)
@@ -188,7 +178,7 @@ class REFDNN:
                         cnt_patience = 0
                         self.saver.save(self.sess, self.checkpoint_path)
                         if verbose > 1:
-                            print("[RefDNN][CHECKPOINT] Model is saved in: {}".format(self.checkpoint_path))
+                            print("[RefDNN] [CHECKPOINT] Model is saved in: {}".format(self.checkpoint_path))
                     elif cnt_patience < self.patience:
                         cnt_patience += 1
                     else:
@@ -197,7 +187,7 @@ class REFDNN:
                 else:
                     self.saver.save(self.sess, self.checkpoint_path)
                     if verbose > 1:
-                        print("[RefDNN][CHECKPOINT] Model is saved in: {}".format(self.checkpoint_path))
+                        print("[RefDNN] [CHECKPOINT] Model is saved in: {}".format(self.checkpoint_path))
 
             ## 3) convergence
             if len(history['train']['loss']) > 1:
@@ -245,7 +235,7 @@ class REFDNN:
         self._create_graph()
         self.saver.restore(self.sess, self.checkpoint_path)
         if verbose > 1:
-            print("[RefDNN][CHECKPOINT] Model is restored from: {}".format(self.checkpoint_path))
+            print("[RefDNN] [CHECKPOINT] Model is restored from: {}".format(self.checkpoint_path))
         
         ## initialization of outputs
         outputs = []
@@ -296,7 +286,7 @@ class REFDNN:
         self._create_graph()
         self.saver.restore(self.sess, self.checkpoint_path)
         if verbose > 1:
-            print("[RefDNN][CHECKPOINT] Model is restored from: {}".format(self.checkpoint_path))
+            print("[RefDNN] [CHECKPOINT] Model is restored from: {}".format(self.checkpoint_path))
         
         ## initialization of outputs
         outputs = []
@@ -330,7 +320,7 @@ class REFDNN:
         self._create_graph()
         self.saver.restore(self.sess, self.checkpoint_path)
         if verbose > 1:
-            print("[RefDNN][CHECKPOINT] Model is restored from: {}".format(self.checkpoint_path))
+            print("[RefDNN] [CHECKPOINT] Model is restored from: {}".format(self.checkpoint_path))
         ## weights
         kernel_dict = {}
         for hidden_name in hidden_names:
@@ -413,13 +403,7 @@ class REFDNN:
     def _open_session(self):
         ## Create a new session
         tf.reset_default_graph()
-        if self.gpu_use:
-            ## GPU
-            gpu_options = tf.GPUOptions()
-            self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-        else:
-            ## CPU
-            self.sess = tf.Session()
+        self.sess = tf.Session()
         
     def _close_session(self):
         self.sess.close()
