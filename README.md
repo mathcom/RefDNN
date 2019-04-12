@@ -30,16 +30,6 @@ For more detail, please refer to Choi, Jonghwan, et al. "RefDNN: a reference dru
     
         $ pip install -r requirements_gpu.txt
     
---------------------------------------------------------------------------------------------
-## USAGE: 
-
-    - If you want to use only tensorflow-cpu:
-
-        $ python 1_nested_cv_baysian_search.py data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv
-        
-    - If you want to use tensorflow-gpu:
-    
-        $ python 1_nested_cv_baysian_search.py -g data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv
 
 --------------------------------------------------------------------------------------------
 ## HELP MESSAGES:
@@ -76,6 +66,7 @@ For more detail, please refer to Choi, Jonghwan, et al. "RefDNN: a reference dru
           -l innerkfold         L for inner l-fold cross validation (default: 3)
           -v verbose            0:No logging, 1:Basic logging to check process, 2:Full
                                 logging for debugging (default:1)
+
     
 --------------------------------------------------------------------------------------------
 ## EXAMPLE:
@@ -126,5 +117,6 @@ For more detail, please refer to Choi, Jonghwan, et al. "RefDNN: a reference dru
         [TIME] [3] 2019-4-12 15:45:36
         [TIME] [4] 2019-4-12 15:45:36
         [FINISH]
+
 
 --------------------------------------------------------------------------------------------
