@@ -9,7 +9,7 @@ RefDNN requires gene expression profiles and drug molecular fingerprint data.
 For more detail, please refer to Choi, Jonghwan, et al. "RefDNN: a reference drug based neural network for more accurate prediction of anticancer drug resistance." (submitted)
 
 
-* Latest update: 8 April 2019
+* Latest update: 12 April 2019
 
 --------------------------------------------------------------------------------------------
 ## SYSTEM REQUIERMENTS: 
@@ -39,76 +39,92 @@ For more detail, please refer to Choi, Jonghwan, et al. "RefDNN: a reference dru
         
     - If you want to use tensorflow-gpu:
     
-        $ python 1_nested_cv_baysian_search.py data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv -g
-    
---------------------------------------------------------------------------------------------
-## EXAMPLE:
-
-    - Note that the complete time of this example is about 8 hours.
-    
-    - When running the source code of nested cross validation with CCLE dataset, an user can see the following logs.
-    
-        $ python 1_nested_cv_baysian_search.py data/response_CCLE.csv data/expression_CCLE.csv data/fingerprint_CCLE.csv -g -o output_1_CCLE
-        [DATA INFO] num_pairs: 5724
-        [DATA INFO] num_drugs: 12
-        [DATA INFO] num_cells: 491
-        [DATA INFO] num_genes: 18926
-        [DATA INFO] num_sensitivity: 2322
-        [DATA INFO] num_resistance: 3402
-        [OUTER][1/5] NOW TUNING THE MODEL USING BAYESIAN OPTIMIZATION...
-        [INNER] NOW EVALUATING PARAMETERS IN THE INNER LOOP...
-        [INNER][01/20] hidden_units: 18
-        [INNER][01/20] learning_rate_ftrl: 5.416e-02
-        [INNER][01/20] learning_rate_adam: 1.077e-05
-        [INNER][01/20] l1_regularization_strength: 2.704e+01
-        [INNER][01/20] l2_regularization_strength: 2.341e-01
-        [INNER][01/20] training_accuracy: 0.806
-        [INNER] NOW EVALUATING PARAMETERS IN THE INNER LOOP...
-        [INNER][02/20] hidden_units: 67
-        [INNER][02/20] learning_rate_ftrl: 4.289e-02
-        [INNER][02/20] learning_rate_adam: 4.991e-04
-        [INNER][02/20] l1_regularization_strength: 5.452e-01
-        [INNER][02/20] l2_regularization_strength: 3.942e-03
-        [INNER][02/20] training_accuracy: 0.618
-        [INNER] NOW EVALUATING PARAMETERS IN THE INNER LOOP...
-        [INNER][03/20] hidden_units: 28
-        [INNER][03/20] learning_rate_ftrl: 4.909e-03
-        
-        (...intermediate omission...)
-        
-        [INNER][19/20] learning_rate_adam: 6.794e-06
-        [INNER][19/20] l1_regularization_strength: 1.000e+02
-        [INNER][19/20] l2_regularization_strength: 1.000e-03
-        [INNER][19/20] training_accuracy: 0.899
-        [INNER] NOW EVALUATING PARAMETERS IN THE INNER LOOP...
-        [INNER][20/20] hidden_units: 81
-        [INNER][20/20] learning_rate_ftrl: 3.783e-06
-        [INNER][20/20] learning_rate_adam: 4.434e-06
-        [INNER][20/20] l1_regularization_strength: 1.000e-03
-        [INNER][20/20] l2_regularization_strength: 1.000e-03
-        [INNER][20/20] training_accuracy: 0.885
-        [OUTER][5/5] BEST_HIDDEN_UNITS : 4
-        [OUTER][5/5] BEST_LEARNING_RATE_FTRL : 2.540e-03
-        [OUTER][5/5] BEST_LEARNING_RATE_ADAM : 1.000e-01
-        [OUTER][5/5] BEST_L1_REGULARIZATION_STRENGTH : 1.000e+02
-        [OUTER][5/5] BEST_L2_REGULARIZATION_STRENGTH : 1.000e+02
-        [OUTER][5/5] BEST_TRAINING_ACCURACY : -0.912
-        [OUTER][5/5] NOW TRAINING THE MODEL WITH BEST PARAMETERS...
-        [OUTER][5/5] BEST_TEST_ACCURACY : 0.918
-        [OUTER][5/5] BEST_TEST_AUCROC : 0.964
-        [OUTER][5/5] BEST_TEST_AUCPR : 0.970
-        FINISH
-
-    - This example will make a directory termed 'output_1_CCLE' and save a result file named 'metrics_hyperparameters.csv' in the directory.
-    
-    - The result file contains 3 metrics and 5 hyperparameter values computed by 5-fold cross validation.
+        $ python 1_nested_cv_baysian_search.py -g data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv
 
 --------------------------------------------------------------------------------------------
-## NOTE:
+## HELP MESSAGES:
 
     - The option parameter '-h' shows help message.
     
         $ python 1_nested_cv_baysian_search.py -h
     
+        usage: 1_nested_cv_baysian_search.py [-h] [-o outputdir] [-b batchsize]
+                                             [-t numtrainingsteps]
+                                             [-s numbayesiansearch] [-k outerkfold]
+                                             [-l innerkfold] [-v verbose]
+                                             responseFile expressionFile
+                                             fingerprintFile
+
+        positional arguments:
+          responseFile          A filepath of drug response data for TRAINING
+          expressionFile        A filepath of gene expression data for TRAINING
+          fingerprintFile       A filepath of fingerprint data for TRAINING
+
+        optional arguments:
+          -h, --help            show this help message and exit
+          -o outputdir          A directory path for saving outputs
+                                (default:'output_1')
+          -b batchsize          A size of batch on training process. The small size is
+                                recommended if an available size of RAM is small
+                                (default: 64)
+          -t numtrainingsteps   Number of training steps on training process. It is
+                                recommended that the steps is larger than (numpairs /
+                                batchsize) (default: 5000)
+          -s numbayesiansearch  Number of bayesian search for hyperparameter tuning
+                                (default: 20)
+          -k outerkfold         K for outer k-fold cross validation (default: 5)
+          -l innerkfold         L for inner l-fold cross validation (default: 3)
+          -v verbose            0:No logging, 1:Basic logging to check process, 2:Full
+                                logging for debugging (default:1)
     
+--------------------------------------------------------------------------------------------
+## EXAMPLE:
+
+    - This example shows how to run the nested cross validation on the CCLE dataset.
+    
+    - Since the default argument values of source code produce very very long process time(about 24 hours), we modify some values.
+    
+        $ python 1_nested_cv_baysian_search.py data/response_CCLE.csv data/expression_CCLE.csv data/fingerprint_CCLE.csv -o output_1_CCLE -s 10 -t 1000 -b 32
+
+    - The example requires about 30 minutes if GPU is exploited.
+    
+    - This example will make a directory named 'output_1_CCLE' and save a result file named 'metrics_hyperparameters.csv' in the directory.
+    
+    - The result file contains 3 metrics and hyperparameter values computed by the nested cross validation.
+    
+    - When running the example, logging information like below is found.
+    
+        [START]
+        [DATA] NUM_PAIRS: 5724
+        [DATA] NUM_DRUGS: 12
+        [DATA] NUM_CELLS: 491
+        [DATA] NUM_GENES: 18926
+        [DATA] NUM_SENSITIVITY: 2322
+        [DATA] NUM_RESISTANCE: 3402
+        [TIME] [1] 2019-4-12 15:16:18
+        [TIME] [2] 2019-4-12 15:16:18
+        [OUTER] [1/5] NOW TUNING THE MODEL USING BAYESIAN OPTIMIZATION...
+        [OUTER] [1/5] BEST_HIDDEN_UNITS : 6
+        [OUTER] [1/5] BEST_LEARNING_RATE_FTRL : 1.000e-01
+        [OUTER] [1/5] BEST_LEARNING_RATE_ADAM : 6.827e-02
+        [OUTER] [1/5] BEST_L1_REGULARIZATION_STRENGTH : 7.324e+00
+        [OUTER] [1/5] BEST_L2_REGULARIZATION_STRENGTH : 1.052e-01
+        [OUTER] [1/5] BEST_TRAINING_ACCURACY : -0.908
+        [OUTER] [1/5] NOW TRAINING THE MODEL WITH BEST PARAMETERS...
+        [OUTER] [1/5] BEST_TEST_ACCURACY : 0.907
+        [OUTER] [1/5] BEST_TEST_AUCROC : 0.926
+        [OUTER] [1/5] BEST_TEST_AUCPR : 0.940
+        [TIME] [3] 2019-4-12 15:22:11
+        [OUTER] [2/5] NOW TUNING THE MODEL USING BAYESIAN OPTIMIZATION...
+        
+        (...intermediate omission...)
+        
+        [OUTER] [5/5] NOW TRAINING THE MODEL WITH BEST PARAMETERS...
+        [OUTER] [5/5] BEST_TEST_ACCURACY : 0.898
+        [OUTER] [5/5] BEST_TEST_AUCROC : 0.944
+        [OUTER] [5/5] BEST_TEST_AUCPR : 0.951
+        [TIME] [3] 2019-4-12 15:45:36
+        [TIME] [4] 2019-4-12 15:45:36
+        [FINISH]
+
 --------------------------------------------------------------------------------------------
