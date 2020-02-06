@@ -6,10 +6,10 @@ RefDNN can predict accurately whether a cell line is resistant to a new drug on 
 
 RefDNN requires gene expression profiles and drug molecular fingerprint data.
 
-For more detail, please refer to Choi, Jonghwan, et al. "RefDNN: a reference drug based neural network for more accurate prediction of anticancer drug resistance." (submitted)
+For more detail, please refer to Choi, Jonghwan, et al. "RefDNN: a reference drug based neural network for more accurate prediction of anticancer drug resistance." Scientific Reports 10 (2020):1-11
 
 
-* Latest update: 12 April 2019
+* Latest update: 06 February 2020
 
 --------------------------------------------------------------------------------------------
 ## SYSTEM REQUIERMENTS: 
