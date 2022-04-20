@@ -89,10 +89,7 @@ def main():
         DRUG_outer.append(test_drug)
         print('[{}/{}] TEST_DRUG: {}'.format(k+1, n_splits, test_drug))
         
-        ## 2-3) Bayesian optimization with gaussian process
-        if verbose > 0:
-            print('[{}/{}] NOW TUNING THE MODEL USING BAYESIAN OPTIMIZATION...'.format(k+1, n_splits))
-
+        ## 2-3) Set the best values of hyperparameters
         BEST_HIDDEN_UNITS = 49
         BEST_LEARNING_RATE_FTRL = 7.94581095185585e-06
         BEST_LEARNING_RATE_ADAM = 0.0004067851789088527
@@ -132,12 +129,12 @@ def main():
                      training_steps=numtrainingsteps,
                      checkpoint_path=checkpoint_path)
                     
-        ## 3-6) Fit a model
+        ## 2-6) Fit a model
         history = clf.fit(X_train, S_train, I_train, Y_train,
                           X_valid, S_valid, I_valid, Y_valid,
                           verbose=verbose)
         
-        ## 3-7) Compute the metric
+        ## 2-7) Compute the metric
         Pred_test = clf.predict(X_test, S_test, verbose=verbose)
         Prob_test = clf.predict_proba(X_test, S_test, verbose=verbose)
         
@@ -160,7 +157,7 @@ def main():
             print(timeformat.format(3, datetime.now()))
     
     #######################################################
-    ## 4. Save the results
+    ## 3. Save the results
     ########################################################
     res = pd.DataFrame.from_dict({'DRUGNAME':DRUG_outer,
                                   'ACCURACY':ACCURACY_outer,
