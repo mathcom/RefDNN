@@ -1,5 +1,7 @@
 # RefDNN: a reference drug based neural network for more accurate prediction of anticancer drug resistance
 
+<img src="figs/overview_of_RefDNN.png" alt="thumbnail" width="600px" />
+
 We introduce a Reference Drug-based Neural Detwork model (RefDNN) for predicting anticancer drug resistance and identifying biomarkers contributing drug resistance.
 
 RefDNN can predict accurately whether a cell line is resistant to a new drug on which the model was not trained.
