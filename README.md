@@ -1,6 +1,6 @@
 # RefDNN: a reference drug based neural network for more accurate prediction of anticancer drug resistance
 
-<img src="figs/overview_of_RefDNN.png" alt="thumbnail" width="600px" />
+<img src="figs/overview_of_RefDNN.png" alt="thumbnail" width="800px" />
 
 We introduce a Reference Drug-based Neural Detwork model (RefDNN) for predicting anticancer drug resistance and identifying biomarkers contributing drug resistance.
 
@@ -18,7 +18,7 @@ For more detail, please refer to Choi. et al. "RefDNN: a reference drug based ne
 
 - RefDNN requires system memory larger than 24GB.
     
-- If you want to use tensorflow-gpu, GPU memory of more than 11GB is required.
+- If you want to use tensorflow-gpu, GPU memory of more than 8GB is required.
 
 
 --------------------------------------------------------------------------------------------
@@ -45,9 +45,11 @@ conda env create -f environment_gpu.yml
 
 - We provide several source codes for tutorials.
 
-    - 1_nested_cv_baysian_search.py : Nested Cross-validation for evaluating RefDNN using the  and Bayesian Hyperparameter Optimization
+    - **1_nested_cv_baysian_search.py** : Nested Cross-validation for evaluating RefDNN using the  and Bayesian Hyperparameter Optimization
 	
-	- 2_lococv_on_GDSC.py : Leave-one-cancer-out Cross-validation for evaluating RefDNN on the GDSC dataset
+	- **2_lococv_on_GDSC.py** : Leave-one-Cancer-out Cross-validation for evaluating RefDNN on the GDSC dataset
+	
+	- **3_lodocv_on_GDSC.py** : Leave-one-Drug-out Cross-validation for evaluating RefDNN on the GDSC dataset
 
 - These tutorial files are available for reproducibility purposes using the default values.
 
@@ -59,6 +61,8 @@ conda activate RefDNN
 python 1_nested_cv_baysian_search.py data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv -o output_1_GDSC
 
 python 2_lococv_on_GDSC.py data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv data/cell_annotation_GDSC.txt -o output_2_lococv_GDSC
+
+python 3_lodocv_on_GDSC.py data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv -o output_3_lodocv_GDSC
 
 conda deactivate
 ```
