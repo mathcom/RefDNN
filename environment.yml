@@ -1,0 +1,18 @@
+name: RefDNN
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.6
+  - tensorflow=1.12
+  - numpy=1.16
+  - scipy=1.5
+  - joblib=0.14
+  - scikit-optimize=0.9
+  - scikit-learn=0.24
+  - umap-learn=0.4
+  - pandas
+  - jupyter
+  - matplotlib
+  - seaborn
+  - pip
