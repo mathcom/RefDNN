@@ -1,7 +1,0 @@
-numpy
-pandas
-scikit-learn
-scikit-optimize
-scipy
-tensorboard
-tensorflow
