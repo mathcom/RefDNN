@@ -11,7 +11,7 @@ RefDNN requires gene expression profiles and drug molecular fingerprint data.
 For more detail, please refer to Choi. et al. "RefDNN: a reference drug based neural network for more accurate prediction of anticancer drug resistance." Scientific Reports 10 (2020):1-11
 
 
-* Latest update: 20 April 2022
+* Latest update: 21 April 2022
 
 --------------------------------------------------------------------------------------------
 ## SYSTEM REQUIERMENTS: 
@@ -45,11 +45,17 @@ conda env create -f environment_gpu.yml
 
 - We provide several source codes for tutorials.
 
-    - **1_nested_cv_baysian_search.py** : Nested Cross-validation for evaluating RefDNN using the  and Bayesian Hyperparameter Optimization
+    - **1_nested_cv_RefDNN.py** : Nested Cross-validation for RefDNN evaluation
+	
+	     - 1-1_nested_cv_elasticnet.py
+		 
+		 - 1-2_nested_cv_randomforest.py
 	
 	- **2_lococv_on_GDSC.py** : Leave-one-Cancer-out Cross-validation for evaluating RefDNN on the GDSC dataset
 	
 	- **3_lodocv_on_GDSC.py** : Leave-one-Drug-out Cross-validation for evaluating RefDNN on the GDSC dataset
+	
+	- **4_biomarker_identification.py** : Biomarker identification of reference drugs using RefDNN trained by '1_nested_cv_RefDNN.py'
 
 - These tutorial files are available for reproducibility purposes using the default values.
 
@@ -58,11 +64,15 @@ conda env create -f environment_gpu.yml
 ```bash
 conda activate RefDNN
 
-python 1_nested_cv_baysian_search.py data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv -o output_1_GDSC
+python 1_nested_cv_RefDNN.py data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv -o output_1_GDSC
+
+python 1-1_nested_cv_elasticnet.py data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv -o output_1-1_GDSC
 
 python 2_lococv_on_GDSC.py data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv data/cell_annotation_GDSC.txt -o output_2_lococv_GDSC
 
 python 3_lodocv_on_GDSC.py data/response_GDSC.csv data/expression_GDSC.csv data/fingerprint_GDSC.csv -o output_3_lodocv_GDSC
+
+python 4_biomarker_identification.py output_1_GDSC -o output_4_GDSC
 
 conda deactivate
 ```
@@ -73,17 +83,17 @@ conda deactivate
 
 - For each tutorial code, the option parameter '-h' shows help message.
 
-- The following is the help message of '1_nested_cv_baysian_search.py':
+- The following is the help message of '1_nested_cv_RefDNN.py':
 
 ```bash    
-$ python 1_nested_cv_baysian_search.py -h
+$ python 1_nested_cv_RefDNN.py -h
 
-usage: 1_nested_cv_baysian_search.py [-h] [-o outputdir] [-b batchsize]
-									 [-t numtrainingsteps]
-									 [-s numbayesiansearch] [-k outerkfold]
-									 [-l innerkfold] [-v verbose]
-									 responseFile expressionFile
-									 fingerprintFile
+usage: 1_nested_cv_RefDNN.py [-h] [-o outputdir] [-b batchsize]
+								  [-t numtrainingsteps]
+								  [-s numbayesiansearch] [-k outerkfold]
+								  [-l innerkfold] [-v verbose]
+								  responseFile expressionFile
+								  fingerprintFile
 
 positional arguments:
   responseFile          A filepath of drug response data for TRAINING
@@ -117,7 +127,7 @@ optional arguments:
 - Since the default argument values of source code produce very very long process time(about 24 hours), we modify some values.
 
 ```bash
-$ python 1_nested_cv_baysian_search.py data/response_CCLE.csv data/expression_CCLE.csv data/fingerprint_CCLE.csv -o output_1_CCLE -s 10 -t 1000 -b 32
+$ python 1_nested_cv_RefDNN.py data/response_CCLE.csv data/expression_CCLE.csv data/fingerprint_CCLE.csv -o output_1_CCLE -s 10 -t 1000 -b 32
 ```
 
 - The example requires about 30 minutes if GPU is exploited.
