@@ -51,9 +51,6 @@ def main():
     ## output directory
     if not os.path.exists(outputdir):
         os.mkdir(outputdir)
-    checkpointdir = os.path.join(outputdir, "checkpoint")
-    if not os.path.exists(checkpointdir):
-        os.mkdir(checkpointdir)
     
     ########################################################
     ## 1. Read data
