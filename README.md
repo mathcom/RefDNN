@@ -46,16 +46,16 @@ conda env create -f environment_gpu.yml
 - We provide several source codes for tutorials.
 
     - **1_nested_cv_RefDNN.py** : Nested Cross-validation for RefDNN evaluation
-	
-	     - 1-1_nested_cv_elasticnet.py
-		 
-		 - 1-2_nested_cv_randomforest.py
-	
-	- **2_lococv_on_GDSC.py** : Leave-one-Cancer-out Cross-validation for evaluating RefDNN on the GDSC dataset
-	
-	- **3_lodocv_on_GDSC.py** : Leave-one-Drug-out Cross-validation for evaluating RefDNN on the GDSC dataset
-	
-	- **4_biomarker_identification.py** : Biomarker identification of reference drugs using RefDNN trained by '1_nested_cv_RefDNN.py'
+    
+         - 1-1_nested_cv_elasticnet.py
+         
+         - 1-2_nested_cv_randomforest.py
+    
+    - **2_lococv_on_GDSC.py** : Leave-one-Cancer-out Cross-validation for evaluating RefDNN on the GDSC dataset
+    
+    - **3_lodocv_on_GDSC.py** : Leave-one-Drug-out Cross-validation for evaluating RefDNN on the GDSC dataset
+    
+    - **4_biomarker_identification.py** : Biomarker identification of reference drugs using RefDNN trained by '1_nested_cv_RefDNN.py'
 
 - These tutorial files are available for reproducibility purposes using the default values.
 
@@ -89,11 +89,11 @@ conda deactivate
 $ python 1_nested_cv_RefDNN.py -h
 
 usage: 1_nested_cv_RefDNN.py [-h] [-o outputdir] [-b batchsize]
-								  [-t numtrainingsteps]
-								  [-s numbayesiansearch] [-k outerkfold]
-								  [-l innerkfold] [-v verbose]
-								  responseFile expressionFile
-								  fingerprintFile
+                                  [-t numtrainingsteps]
+                                  [-s numbayesiansearch] [-k outerkfold]
+                                  [-l innerkfold] [-v verbose]
+                                  responseFile expressionFile
+                                  fingerprintFile
 
 positional arguments:
   responseFile          A filepath of drug response data for TRAINING
@@ -103,19 +103,19 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -o outputdir          A directory path for saving outputs
-						(default:'output_1')
+                        (default:'output_1')
   -b batchsize          A size of batch on training process. The small size is
-						recommended if an available size of RAM is small
-						(default: 64)
+                        recommended if an available size of RAM is small
+                        (default: 64)
   -t numtrainingsteps   Number of training steps on training process. It is
-						recommended that the steps is larger than (numpairs /
-						batchsize) (default: 5000)
+                        recommended that the steps is larger than (numpairs /
+                        batchsize) (default: 5000)
   -s numbayesiansearch  Number of bayesian search for hyperparameter tuning
-						(default: 20)
+                        (default: 20)
   -k outerkfold         K for outer k-fold cross validation (default: 5)
   -l innerkfold         L for inner l-fold cross validation (default: 3)
   -v verbose            0:No logging, 1:Basic logging to check process, 2:Full
-						logging for debugging (default:1)
+                        logging for debugging (default:1)
 ```
 
     
