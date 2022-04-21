@@ -57,6 +57,7 @@ def main():
     if not os.path.exists(checkpointdir):
         os.mkdir(checkpointdir)
     
+    
     ########################################################
     ## 1. Read data
     ########################################################    
@@ -80,6 +81,7 @@ def main():
     if verbose > 0:
         print(timeformat.format(1, datetime.now()))
     
+    
     ########################################################
     ## 2. Define the space of hyperparameters
     ########################################################
@@ -89,6 +91,7 @@ def main():
     space_learning_rate_adam = skopt.space.Real(low=1e-6, high=1e-1, prior='log-uniform', name='learning_rate_adam')
     space_l1_regularization_strength = skopt.space.Real(low=1e-3, high=1e+2, prior='log-uniform', name='l1_regularization_strength')
     space_l2_regularization_strength = skopt.space.Real(low=1e-3, high=1e+2, prior='log-uniform', name='l2_regularization_strength')
+
     ## 2-2) Define hyperparmeter space
     dimensions_hyperparameters = [space_hidden_units,
                                   space_learning_rate_ftrl,
@@ -99,6 +102,7 @@ def main():
     ## time log
     if verbose > 0:
         print(timeformat.format(2, datetime.now()))
+    
     
     #######################################################
     ## 3. Start the hyperparameter tuning jobs
@@ -115,11 +119,12 @@ def main():
     numbayesiansearch = args.s
     batchsize = args.b
     numtrainingsteps = args.t
-    
+
     ## 3-1) init lists for metrics
     ACCURACY_outer = []
     AUCROC_outer = []
     AUCPR_outer = []
+
     ## 3-2) init lists for hyperparameters
     Hidden_units_outer = []
     Learning_rate_ftrl_outer = []
@@ -150,6 +155,14 @@ def main():
         BEST_L1_REGULARIZATION_STRENGTH = search_result.x[3]
         BEST_L2_REGULARIZATION_STRENGTH = search_result.x[4]
         BEST_TRAINING_ACCURACY = search_result.fun
+        
+        configs_path = os.path.join(checkpointdir, "{:03d}_configs.csv".format(k))
+        with open(configs_path, 'w') as fout:
+            fout.write("HIDDEN_UNITS,{:d}\n".format(BEST_HIDDEN_UNITS))
+            fout.write("LEARNING_RATE_FTRL,{:.6f}\n".format(BEST_LEARNING_RATE_FTRL))
+            fout.write("LEARNING_RATE_ADAM,{:.6f}\n".format(BEST_LEARNING_RATE_ADAM))
+            fout.write("L1_REGULARIZATION_STRENGTH,{:.6f}\n".format(BEST_L1_REGULARIZATION_STRENGTH))
+            fout.write("L2_REGULARIZATION_STRENGTH,{:.6f}\n".format(BEST_L2_REGULARIZATION_STRENGTH))
         
         Hidden_units_outer.append(BEST_HIDDEN_UNITS)
         Learning_rate_ftrl_outer.append(BEST_LEARNING_RATE_FTRL)
@@ -187,8 +200,7 @@ def main():
         if verbose > 0:
             print('[OUTER] [{}/{}] NOW TRAINING THE MODEL WITH BEST PARAMETERS...'.format(k+1, kf.get_n_splits()))
             
-        checkpoint_path = "RefDNN_cv_outer.ckpt"
-        checkpoint_path = os.path.join(checkpointdir, checkpoint_path)
+        checkpoint_path = os.path.join(checkpointdir, "{:03d}_RefDNN_cv_outer.ckpt".format(k))
         clf = REFDNN(hidden_units=BEST_HIDDEN_UNITS,
                      learning_rate_ftrl=BEST_LEARNING_RATE_FTRL,
                      learning_rate_adam=BEST_LEARNING_RATE_ADAM,
@@ -220,6 +232,17 @@ def main():
             print('[OUTER] [{}/{}] BEST_TEST_ACCURACY : {:.3f}'.format(k+1, kf.get_n_splits(), ACCURACY_outer_k))
             print('[OUTER] [{}/{}] BEST_TEST_AUCROC : {:.3f}'.format(k+1, kf.get_n_splits(), AUCROC_outer_k))
             print('[OUTER] [{}/{}] BEST_TEST_AUCPR : {:.3f}'.format(k+1, kf.get_n_splits(), AUCPR_outer_k))
+            
+        ## 3-8) Save meta data
+        drugnames_path = os.path.join(checkpointdir, "{:03d}_drugnames.csv".format(k))
+        with open(drugnames_path, 'w') as fout:
+            for drugname in base_drugs:
+                fout.write("{}\n".format(drugname))
+                
+        genenames_path = os.path.join(checkpointdir, "{:03d}_genenames.csv".format(k))
+        with open(genenames_path, 'w') as fout:
+            for genename in dataset.get_genes():
+                fout.write("{}\n".format(genename))
             
         ## time log   
         if verbose > 0:
@@ -318,6 +341,9 @@ def fitness(hyperparameters):
         print('[INNER] [{}/{}] L1_REGULARIZATION_STRENGTH: {:.3e}'.format(fitness_step, innerkfold, L1_REGULARIZATION_STRENGTH))
         print('[INNER] [{}/{}] L2_REGULARIZATION_STRENGTH: {:.3e}'.format(fitness_step, innerkfold, L2_REGULARIZATION_STRENGTH))
         print('[INNER] [{}/{}] TRAINING_ACCURACY: {:.3f}'.format(fitness_step, innerkfold, training_accuracy))
+    
+    ## delete temporary checkpoints
+    os.system("rm {}.*".format(checkpoint_path))
     
     fitness_step += 1
     return -training_accuracy

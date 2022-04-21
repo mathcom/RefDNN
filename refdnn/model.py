@@ -35,6 +35,8 @@ class REFDNN:
         if checkpoint_path is None:
             checkpoint_path = "ckpt_RefDNN.ckpt"
         self.checkpoint_path = checkpoint_path
+        self._output_types = None
+        self._output_shapes = None
     
 
     def fit(self,
@@ -304,18 +306,20 @@ class REFDNN:
         return np.array(outputs, dtype=np.float32)
     
     
-    def get_kernels(self, hidden_names=None, verbose=2):
+    def get_kernels(self, num_genes=None, num_drugs=None, verbose=2):
         '''
         dense0
         dense1
         dense2
         output
         '''
-        if hidden_names == None:
-            hidden_names = ['dense0', 'dense1', 'dense2', 'output']
-            
         ## tf.Session
         self._open_session()
+        ## graph setting
+        if self._output_types is None:
+            self._output_types = (tf.float32, tf.float32, tf.int32, tf.uint8) 
+        if self._output_shapes is None:
+            self._output_shapes = (tf.TensorShape((None, num_genes)), tf.TensorShape((None, num_drugs)), tf.TensorShape((None,)), tf.TensorShape((None, 1)))
         ## tf.graph
         self._create_graph()
         self.saver.restore(self.sess, self.checkpoint_path)
@@ -323,7 +327,7 @@ class REFDNN:
             print("[RefDNN] [CHECKPOINT] Model is restored from: {}".format(self.checkpoint_path))
         ## weights
         kernel_dict = {}
-        for hidden_name in hidden_names:
+        for hidden_name in ['dense0', 'dense1', 'dense2', 'output']:
             weights = tf.get_default_graph().get_tensor_by_name('{}/kernel:0'.format(hidden_name))
             kernel_dict[hidden_name] = self.sess.run(weights)
         ## tf.Session
@@ -346,7 +350,7 @@ class REFDNN:
         nonlinear = tf.nn.sigmoid
         
         ## Model
-        dense0    = tf.layers.dense(inputs=X_batch, units=self._S_shape[1], activation='linear', name='dense0')
+        dense0    = tf.layers.dense(inputs=X_batch, units=self._output_shapes[1][1].value, activation='linear', name='dense0')
         activate0 = nonlinear(dense0, name='activation0')
         
         dense1    = tf.layers.dense(inputs=tf.multiply(S_batch, activate0), units=self.hidden_units, activation='linear', name='dense1')
@@ -358,7 +362,7 @@ class REFDNN:
         activate2 = nonlinear(bn2, name='activation2')
         
         ## Output
-        O_ELASTICNET  = tf.expand_dims(tf.reduce_sum(tf.multiply(dense0, tf.one_hot(I_batch, depth=self._S_shape[1])), 1), axis=-1)
+        O_ELASTICNET  = tf.expand_dims(tf.reduce_sum(tf.multiply(dense0, tf.one_hot(I_batch, depth=self._output_shapes[1][1].value)), 1), axis=-1)
         O_DNN = tf.layers.dense(inputs=activate2, units=1, activation='linear', name='output')
         
         ## LOSS
